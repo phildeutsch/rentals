@@ -3,7 +3,6 @@ import geopandas as gpd
 import itertools
 import pandas as pd
 from shapely.geometry import Point
-
 from sklearn.feature_extraction import DictVectorizer
 
 
@@ -75,7 +74,7 @@ def add_region(df):
     return(df_region)
 
 
-def predict(model, X, cutoffs=[1,1,1]):
+def predict(model, X, cutoffs=[1, 1, 1]):
     probs = model.predict_proba(X)
     preds = model.predict(X)
 
