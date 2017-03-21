@@ -36,10 +36,21 @@ def add_variables(df, train_raw):
 def vectorizer(varname, train):
     dv = DictVectorizer(sparse=False)
 
-    df_in = pd.DataFrame(train[['County']])
+    df_in = pd.DataFrame(train[[varname]])
     dv.fit(df_in.to_dict(orient='records'))
 
     return(dv)
+
+
+def one_hot_encode(vectorizer, df, colname):
+    counties = pd.DataFrame(
+        vectorizer.transform(pd.DataFrame(df[[colname]]).
+                             to_dict(orient='records')),
+        columns=vectorizer.feature_names_)
+    df = pd.concat([df.reset_index(drop=True), counties], axis=1)
+    del df[colname]
+
+    return(df)
 
 
 def add_region(df):
