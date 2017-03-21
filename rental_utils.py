@@ -73,3 +73,21 @@ def add_region(df):
     df_region.loc[pd.isnull(df_region['County']), 'County'] = 'None'
 
     return(df_region)
+
+
+def predict(model, X, cutoffs=[1,1,1]):
+    probs = model.predict_proba(X)
+    preds = model.predict(X)
+
+    probs = pd.DataFrame(probs, columns=model.classes_)
+
+    low_accuracy, med_accuracy, high_accuracy = cutoffs
+
+    probs.loc[probs['high'] > high_accuracy, 'high'] = high_accuracy
+    probs.loc[probs['high'] < 1 - high_accuracy, 'high'] = 1 - high_accuracy
+    probs.loc[probs['medium'] > med_accuracy, 'medium'] = med_accuracy
+    probs.loc[probs['medium'] < 1 - med_accuracy, 'medium'] = 1 - med_accuracy
+    probs.loc[probs['low'] > low_accuracy, 'low'] = low_accuracy
+    probs.loc[probs['low'] < 1 - low_accuracy, 'low'] = 1 - low_accuracy
+
+    return preds, probs
