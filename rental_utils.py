@@ -23,11 +23,18 @@ def add_features(df, features, feature_names):
     return(df)
 
 
-def add_variables(df, train_raw):
+def clean(df):
     df['rooms'] = df['bedrooms'] + df['bathrooms']
     df.loc[df['rooms'] == 0, 'rooms'] = 1
     df.loc[df['price'] > 10000, 'price'] = 10000
 
+    df['features'] = ([[w.lower().replace('-', '') for w in l]
+                      for l in df['features'].values])
+
+    return(df)
+
+
+def add_variables(df, train_raw):
     df['description_length'] = (df["description"].
                                 apply(lambda x: len(x.split(' '))))
     df['n_features'] = [len(x) for x in df['features'].values]
