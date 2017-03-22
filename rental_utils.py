@@ -24,10 +24,23 @@ def add_features(df, features, feature_names):
 
 
 def add_variables(df, train_raw):
-    df['description_length'] = [len(x) for x in df['description'].values]
+    df['rooms'] = df['bedrooms'] + df['bathrooms']
+    df.loc[df['rooms'] == 0, 'rooms'] = 1
+    df.loc[df['price'] > 10000, 'price'] = 10000
+
+    df['description_length'] = (df["description"].
+                                apply(lambda x: len(x.split(' '))))
     df['n_features'] = [len(x) for x in df['features'].values]
     df['n_photos'] = [len(x) for x in df['photos'].values]
-    df['month'] = [x[5:7] for x in df['created'].values]
+
+    df['price_per_room'] = df['price']/df['rooms']
+
+    df["created"] = pd.to_datetime(df["created"])
+    df["created_year"] = df["created"].dt.year
+    df["created_month"] = df["created"].dt.month
+    df["created_day"] = df["created"].dt.day
+    df["created_hour"] = df["created"].dt.hour
+    df["created_weekday"] = df["created"].dt.weekday
 
     return(df)
 
