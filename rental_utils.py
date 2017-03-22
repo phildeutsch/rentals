@@ -4,6 +4,7 @@ import itertools
 import pandas as pd
 from shapely.geometry import Point
 from sklearn.feature_extraction import DictVectorizer
+import datetime
 
 
 def get_features(n_features, train):
@@ -110,3 +111,22 @@ def predict(model, X, cutoffs=[1, 1, 1]):
     probs.loc[probs['low'] < 1 - low_accuracy, 'low'] = 1 - low_accuracy
 
     return preds, probs
+
+
+def prepare_submission(model, test, independent):
+    submission = test[['listing_id']]
+    preds, probs = predict(model, test[independent])
+    submission = pd.concat([submission.reset_index(drop=True),
+                            pd.DataFrame(probs, columns=model.classes_)],
+                           axis=1)
+    submission = submission[['listing_id', 'high', 'medium', 'low']]
+
+    timestamp = str(datetime.datetime.now())[:16]
+    submission_name = 'Submissions/submission ' + timestamp + '.csv'
+    submission_name = submission_name.replace(' ', '_').replace(':', '')
+    submission.to_csv(submission_name, index=False)
+
+    print('Written to file ' + submission_name)
+    print(submission.head())
+
+    return 0
