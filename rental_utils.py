@@ -4,7 +4,56 @@ import itertools
 import pandas as pd
 from shapely.geometry import Point
 from sklearn.feature_extraction import DictVectorizer
+from sklearn.model_selection import train_test_split
 import datetime
+
+
+def load_data():
+    print('Loading raw data')
+    train_raw = clean(pd.read_json('Data/train.json'))
+    test_raw = clean(pd.read_json('Data/test.json'))
+
+    print('Adding features')
+    [features, feature_names] = get_features(25, train_raw)
+    train = add_features(train_raw, features, feature_names)
+    test = add_features(test_raw, features, feature_names)
+
+    print('Adding regions')
+    train = add_region(train)
+    test = add_region(test)
+
+    print('Adding variables')
+    train = add_variables(train, train)
+    test = add_variables(test, train)
+
+    print('Dummyfying')
+    dv_county = vectorizer('County', train)
+    train = one_hot_encode(dv_county, train, 'County')
+    test = one_hot_encode(dv_county, test, 'County')
+
+    dv_name = vectorizer('Name', train)
+    train = one_hot_encode(dv_name, train, 'Name')
+    test = one_hot_encode(dv_name, test, 'Name')
+
+    dv_region = vectorizer('RegionID', train)
+    train = one_hot_encode(dv_region, train, 'RegionID')
+    test = one_hot_encode(dv_region, test, 'RegionID')
+
+    independent = (['bathrooms', 'bedrooms', 'rooms', 'price'] +
+                   ['description_length', 'n_features', 'n_photos'] +
+                   ['price_per_room', 'created_hour'] +
+                   ['created_year', 'created_month', 'created_weekday'] +
+                   [x for x in train.columns.values if 'County' in x] +
+                   [x for x in train.columns.values if 'Name' in x] +
+                   [x for x in train.columns.values if 'Region' in x] +
+                   feature_names
+                   )
+
+    print('Splitting data')
+    data = train_test_split(train[independent], train['interest_level'],
+                            test_size=0.33, random_state=1)
+
+    return data, independent, test
 
 
 def get_features(n_features, train):
@@ -129,4 +178,4 @@ def prepare_submission(model, test, independent):
     print('Written to file ' + submission_name)
     print(submission.head())
 
-    return 0
+    return None
