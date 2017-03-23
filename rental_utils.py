@@ -43,6 +43,8 @@ def load_data():
                    ['description_length', 'n_features', 'n_photos'] +
                    ['price_per_room', 'created_hour'] +
                    ['created_year', 'created_month', 'created_weekday'] +
+                   ['n_listings', 'manager_interest_low'] +
+                   ['manager_interest_high'] +
                    [x for x in train.columns.values if 'County' in x] +
                    [x for x in train.columns.values if 'Name' in x] +
                    [x for x in train.columns.values if 'Region' in x] +
@@ -98,6 +100,29 @@ def add_variables(df, train_raw):
     df["created_day"] = df["created"].dt.day
     df["created_hour"] = df["created"].dt.hour
     df["created_weekday"] = df["created"].dt.weekday
+
+    # Manager variables
+    manager_grouped = train_raw.groupby('manager_id')
+
+    manager_listings = pd.DataFrame(manager_grouped['listing_id'].agg(len))
+    manager_listings.reset_index(inplace=True)
+    manager_listings.columns = ['manager_id', 'n_listings']
+    df = pd.merge(df, manager_listings, 'left', on='manager_id')
+    df.loc[pd.isnull(df['n_listings']), 'n_listings'] = 0
+
+    manager_high = pd.DataFrame(manager_grouped['interest_level'].
+                                agg(lambda x: sum(x == 'high')/len(x)))
+    manager_high.reset_index(inplace=True)
+    manager_high.columns = ['manager_id', 'manager_interest_high']
+    df = pd.merge(df, manager_high, 'left', on='manager_id')
+    df.loc[pd.isnull(df['manager_interest_high']), 'manager_interest_high'] = 0
+
+    manager_low = pd.DataFrame(manager_grouped['interest_level'].
+                               agg(lambda x: sum(x == 'low')/len(x)))
+    manager_low.reset_index(inplace=True)
+    manager_low.columns = ['manager_id', 'manager_interest_low']
+    df = pd.merge(df, manager_low, 'left', on='manager_id')
+    df.loc[pd.isnull(df['manager_interest_low']), 'manager_interest_low'] = 0
 
     return(df)
 
