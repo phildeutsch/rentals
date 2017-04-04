@@ -6,6 +6,13 @@ from shapely.geometry import Point
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import train_test_split
 import datetime
+import re
+import nltk
+from bs4 import BeautifulSoup
+import progressbar
+from nltk.corpus import stopwords
+
+nltk.download('stopwords')
 
 
 def load_data():
@@ -13,10 +20,15 @@ def load_data():
     train_raw = clean(pd.read_json('Data/train.json'))
     test_raw = clean(pd.read_json('Data/test.json'))
 
+    desc_train = pd.read_csv('Data/description_prediction_train.csv')
+    desc_test = pd.read_csv('Data/description_prediction_test.csv')
+    train = pd.merge(train_raw, desc_train, 'left', on='listing_id')
+    test = pd.merge(test_raw, desc_test, 'left', on='listing_id')
+
     print('Adding features')
-    [features, feature_names] = get_features(25, train_raw)
-    train = add_features(train_raw, features, feature_names)
-    test = add_features(test_raw, features, feature_names)
+    [features, feature_names] = get_features(25, train)
+    train = add_features(train, features, feature_names)
+    test = add_features(test, features, feature_names)
 
     print('Adding regions')
     train = add_region(train)
@@ -39,6 +51,10 @@ def load_data():
     train = one_hot_encode(dv_region, train, 'RegionID')
     test = one_hot_encode(dv_region, test, 'RegionID')
 
+    dv_description_pred = vectorizer('desc_pred', train)
+    train = one_hot_encode(dv_description_pred, train, 'desc_pred')
+    test = one_hot_encode(dv_description_pred, test, 'desc_pred')
+
     independent = (['bathrooms', 'bedrooms', 'rooms', 'price'] +
                    ['description_length', 'n_features', 'n_photos'] +
                    ['price_per_room', 'created_hour'] +
@@ -48,6 +64,7 @@ def load_data():
                    [x for x in train.columns.values if 'County' in x] +
                    [x for x in train.columns.values if 'Name' in x] +
                    [x for x in train.columns.values if 'Region' in x] +
+                   [x for x in train.columns.values if 'desc_pred' in x] +
                    feature_names
                    )
 
@@ -204,3 +221,23 @@ def prepare_submission(model, test, independent):
     print(submission.head())
 
     return None
+
+
+def description_to_words(raw_description):
+    review_text = BeautifulSoup(raw_description, "html5lib").get_text()
+    letters_only = re.sub("[^a-zA-Z]", " ", review_text)
+    words = letters_only.lower().split()
+    stops = set(stopwords.words("english"))
+    meaningful_words = [w for w in words if w not in stops]
+    return(" ".join(meaningful_words))
+
+
+def convert_to_words(data):
+    num_descriptions = data["description"].values.size
+    clean_descriptions = []
+    with progressbar.ProgressBar(max_value=num_descriptions) as bar:
+        for i in xrange(0, num_descriptions):
+            clean_descriptions.append(
+                description_to_words(data["description"].values[i]))
+            bar.update(i)
+    return(clean_descriptions)
