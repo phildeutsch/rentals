@@ -20,15 +20,10 @@ def load_data():
     train_raw = clean(pd.read_json('Data/train.json'))
     test_raw = clean(pd.read_json('Data/test.json'))
 
-    desc_train = pd.read_csv('Data/description_prediction_train.csv')
-    desc_test = pd.read_csv('Data/description_prediction_test.csv')
-    train = pd.merge(train_raw, desc_train, 'left', on='listing_id')
-    test = pd.merge(test_raw, desc_test, 'left', on='listing_id')
-
     print('Adding features')
-    [features, feature_names] = get_features(25, train)
-    train = add_features(train, features, feature_names)
-    test = add_features(test, features, feature_names)
+    [features, feature_names] = get_features(25, train_raw)
+    train = add_features(train_raw, features, feature_names)
+    test = add_features(test_raw, features, feature_names)
 
     print('Adding regions')
     train = add_region(train)
@@ -51,10 +46,6 @@ def load_data():
     train = one_hot_encode(dv_region, train, 'RegionID')
     test = one_hot_encode(dv_region, test, 'RegionID')
 
-    dv_description_pred = vectorizer('desc_pred', train)
-    train = one_hot_encode(dv_description_pred, train, 'desc_pred')
-    test = one_hot_encode(dv_description_pred, test, 'desc_pred')
-
     independent = (['bathrooms', 'bedrooms', 'rooms', 'price'] +
                    ['description_length', 'n_features', 'n_photos'] +
                    ['price_per_room', 'created_hour'] +
@@ -64,7 +55,6 @@ def load_data():
                    [x for x in train.columns.values if 'County' in x] +
                    [x for x in train.columns.values if 'Name' in x] +
                    [x for x in train.columns.values if 'Region' in x] +
-                   [x for x in train.columns.values if 'desc_pred' in x] +
                    feature_names
                    )
 
